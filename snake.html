@@ -1,0 +1,187 @@
+<!DOCTYP html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Snake</title>
+<style>
+  body {
+    background: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: white;
+    font-family: Arial;
+    touch-action: none; /* 🔥 IMPORTANTE para móvil */
+  }
+</style>
+</head>
+
+<body>
+
+<canvas id="c" width="600" height="600" style="border:5px solid #38bdf8"></canvas>
+
+<!-- 🔊 Sonidos -->
+<audio id="eatSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/pop.ogg">
+</audio>
+
+<audio id="loseSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg">
+</audio>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+const eatSound = document.getElementById("eatSound");
+const loseSound = document.getElementById("loseSound");
+
+const size = 20;
+let direction = "RIGHT";
+let score = 0;
+let paused = false;
+
+// 🎨 Colores
+const headColor = "#22c55e";
+const bodyColor = "#16a34a";
+const appleColor = "#ef4444";
+const textColor = "#e5e7eb";
+
+// Serpiente
+let snake = [
+  {x: 300, y: 300},
+  {x: 280, y: 300},
+  {x: 260, y: 300}
+];
+
+// Manzana
+let apple = randomApple();
+
+function randomApple() {
+  return {
+    x: Math.floor(Math.random() * (canvas.width / size)) * size,
+    y: Math.floor(Math.random() * (canvas.height / size)) * size
+  };
+}
+
+/* ⌨️ CONTROLES TECLADO */
+document.addEventListener("keydown", e => {
+    if (e.key === "p" || e.key === "P") {
+    togglePause();
+    return;
+  }
+  if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+  if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+  if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+  if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+});
+
+/* 📱 CONTROLES TÁCTILES (DESLIZAR) */
+let startX = 0;
+let startY = 0;
+
+canvas.addEventListener("touchstart", e => {
+  const touch = e.touches[0];
+  startX = touch.clientX;
+  startY = touch.clientY;
+});
+
+canvas.addEventListener("touchend", e => {
+  const touch = e.changedTouches[0];
+  let endX = touch.clientX;
+  let endY = touch.clientY;
+
+  let dx = endX - startX;
+  let dy = endY - startY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0 && direction !== "LEFT") direction = "RIGHT";
+    if (dx < 0 && direction !== "RIGHT") direction = "LEFT";
+  } else {
+    if (dy > 0 && direction !== "UP") direction = "DOWN";
+    if (dy < 0 && direction !== "DOWN") direction = "UP";
+  }
+});
+
+function game() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (paused) {
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+    ctx.fillText("PAUSA", canvas.width / 2 - 80, canvas.height / 2);
+    return;
+  }
+
+  // Puntaje
+  ctx.fillStyle = textColor;
+  ctx.font = "20px Arial";
+  ctx.fillText("Puntos: " + score, 10, 25);
+
+  // Manzana
+  ctx.fillStyle = appleColor;
+  ctx.fillRect(apple.x, apple.y, size, size);
+
+  // Serpiente
+  for (let i = 0; i < snake.length; i++) {
+    ctx.fillStyle = i === 0 ? headColor : bodyColor;
+    ctx.fillRect(snake[i].x, snake[i].y, size, size);
+  }
+
+  let head = { x: snake[0].x, y: snake[0].y };
+
+  if (direction === "UP") head.y -= size;
+  if (direction === "DOWN") head.y += size;
+  if (direction === "LEFT") head.x -= size;
+  if (direction === "RIGHT") head.x += size;
+
+  // 💀 Paredes
+  if (
+    head.x < 0 || head.y < 0 ||
+    head.x >= canvas.width || head.y >= canvas.height
+  ) return gameOver();
+
+  // 💀 Cuerpo
+  for (let i = 0; i < snake.length; i++) {
+    if (head.x === snake[i].x && head.y === snake[i].y)
+      return gameOver();
+  }
+
+  // 🍎 Comer
+  if (head.x === apple.x && head.y === apple.y) {
+    score++;
+    eatSound.currentTime = 0;
+    eatSound.play();
+    apple = randomApple();
+  } else {
+    snake.pop();
+  }
+
+  snake.unshift(head);
+}
+
+function gameOver() {
+  loseSound.currentTime = 0;
+  loseSound.play();
+  alert("💀 Game Over\nPuntaje: " + score);
+  snake = [
+    {x: 300, y: 300},
+    {x: 280, y: 300},
+    {x: 260, y: 300}
+  ];
+  direction = "RIGHT";
+  score = 0;
+  apple = randomApple();
+}
+
+function togglePause() {
+  paused = !paused;
+}
+
+setInterval(game, 120);
+</script>
+
+</body>
+</html>
